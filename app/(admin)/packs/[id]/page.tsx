@@ -20,7 +20,10 @@ import {
   Clock,
   TrendingUp,
   Trash2,
-  Pencil,
+  Zap,
+  ShieldCheck,
+  Download,
+  Settings2,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -153,6 +156,12 @@ export default function PackDetailPage({
   const [toDelete, setToDelete] = useState<{ type: ContentType; item: ContentItem } | null>(null)
   const [editPackOpen, setEditPackOpen] = useState(false)
 
+  const [chatbotSettings, setChatbotSettings] = useState({
+    tone: "Académique",
+    contextDepth: "Maximum",
+    allowFreeSample: true,
+  })
+
   function openAdd(type: ContentType) {
     setAddType(type)
     setAddForm({
@@ -204,163 +213,143 @@ export default function PackDetailPage({
   }
 
   function toggleFree(type: ContentType, item: ContentItem) {
-    setContent((prev) => ({
-      ...prev,
-      [type]: prev[type].map((i) =>
-        i.id === item.id ? { ...i, gratuit: !i.gratuit } : i,
-      ),
-    }))
-    toast.success(
-      !item.gratuit ? "Marqué comme aperçu gratuit" : "Retiré de l'aperçu gratuit",
-    )
+    setContent((prev) => ({ ...prev, [type]: prev[type].map((i) => i.id === item.id ? { ...i, gratuit: !i.gratuit } : i) }))
+    toast.success(!item.gratuit ? "Marqué comme aperçu gratuit" : "Retiré de l'aperçu gratuit")
   }
 
-  const totals = useMemo(
-    () => ({
-      cours: content.cours.length,
-      resumes: content.resumes.length,
-      audio: content.audio.length,
-      video: content.video.length,
-      qcm: content.qcm.length,
-      flash: content.flash.length,
-    }),
-    [content],
-  )
+  const totals = useMemo(() => ({
+    cours: content.cours.length,
+    resumes: content.resumes.length,
+    audio: content.audio.length,
+    video: content.video.length,
+    qcm: content.qcm.length,
+    flash: content.flash.length,
+  }), [content])
+
+  const globalVues = useMemo(() => {
+    return Object.values(content).flat().reduce((a, b) => a + b.vues, 0)
+  }, [content])
 
   return (
-    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6">
-      {/* Back */}
-      <Link
-        href="/packs"
-        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour aux packs
-      </Link>
+    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 pb-20">
+      {/* Back & Breadcrumbs */}
+      <div className="flex items-center gap-4">
+        <Link href="/packs" className="bg-background border-border hover:bg-muted flex h-9 w-9 items-center justify-center rounded-lg border transition-colors shadow-sm">
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+        <div className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+          <span>Catalogue</span>
+          <span>/</span>
+          <span>Packs</span>
+          <span>/</span>
+          <span className="text-foreground">{pack.titre}</span>
+        </div>
+      </div>
 
-      {/* Hero */}
-      <div className="bg-card border-border relative overflow-hidden rounded-xl border p-6 md:p-8">
-        <div className="bg-primary/8 absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl" />
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 font-semibold">
-                {pack.concours}
-              </span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">Cycle {pack.cycle}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">{pack.matiere}</span>
-              <Badge
-                variant="outline"
-                className="border-success/30 text-success bg-success/5 ml-1"
-              >
-                {pack.statut}
+      {/* Hero Header */}
+      <div className="bg-card border-border relative overflow-hidden rounded-2xl border p-8 shadow-sm">
+        <div className="bg-primary/5 absolute right-0 top-0 h-64 w-64 rounded-full blur-[100px]" />
+        
+        <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-0 font-bold uppercase tracking-wider text-[10px]">
+                {pack.concours} · Cycle {pack.cycle}
+              </Badge>
+              <Badge variant="outline" className="border-success/30 text-success bg-success/5 font-bold uppercase text-[10px]">
+                Statut: {pack.statut}
               </Badge>
             </div>
-            <h1 className="text-foreground mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+            
+            <h1 className="text-foreground text-4xl font-extrabold tracking-tight">
               {pack.titre}
             </h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">
-              Pack pédagogique complet incluant cours, résumés, audios, vidéos, QCM et flashcards.
-              L&apos;achat débloque l&apos;ensemble du contenu et l&apos;accès au chatbot
-              contextuel jusqu&apos;à la date de clôture du concours.
+            
+            <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+              Gestion centralisée de l&apos;unité pédagogique <strong>{pack.matiere}</strong>. 
+              Paramétrez les accès gratuits pour maximiser la conversion et surveillez l&apos;engagement des {pack.acheteurs.toLocaleString()} apprenants actifs.
             </p>
 
-            <div className="mt-5 flex flex-wrap items-center gap-5 text-sm">
-              <div className="flex items-center gap-2">
-                <Eye className="text-primary h-4 w-4" />
-                <span className="text-muted-foreground">Acheteurs :</span>
-                <span className="text-foreground font-semibold tabular-nums">
-                  {pack.acheteurs.toLocaleString("fr-FR")}
-                </span>
+            <div className="flex flex-wrap items-center gap-6 pt-2">
+              <div className="flex flex-col">
+                <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tighter">Vues totales</span>
+                <span className="text-foreground text-lg font-bold tabular-nums">{globalVues.toLocaleString()}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="text-success h-4 w-4" />
-                <span className="text-muted-foreground">Progression moy :</span>
-                <span className="text-foreground font-semibold tabular-nums">
-                  {pack.progression}%
-                </span>
+              <div className="bg-border h-8 w-px" />
+              <div className="flex flex-col">
+                <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tighter">Engagement Apprenant</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-foreground text-lg font-bold tabular-nums">{pack.progression}%</span>
+                  <div className="h-1.5 w-16 bg-muted overflow-hidden rounded-full">
+                    <div className="h-full bg-success rounded-full" style={{ width: `${pack.progression}%` }} />
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="text-info h-4 w-4" />
-                <span className="text-muted-foreground">MAJ :</span>
-                <span className="text-foreground font-semibold">{pack.miseAJour}</span>
+              <div className="bg-border h-8 w-px" />
+              <div className="flex flex-col">
+                <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tighter">Date de Mise à jour</span>
+                <span className="text-foreground text-lg font-bold">{pack.miseAJour}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 md:items-end">
-            <div className="bg-background/80 border-border rounded-lg border px-5 py-3 text-right backdrop-blur">
-              <div className="text-muted-foreground text-xs uppercase tracking-wider">
-                Prix du pack
-              </div>
-              <div className="text-foreground mt-1 text-3xl font-bold tabular-nums">
-                {fcfa(pack.prix)}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toast.info("Aperçu apprenant ouvert dans un nouvel onglet")}
-              >
-                <Eye className="mr-1.5 h-4 w-4" />
-                Aperçu
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setEditPackOpen(true)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Pencil className="mr-1.5 h-4 w-4" />
-                Modifier le pack
-              </Button>
-            </div>
+          <div className="flex flex-col gap-4 lg:items-end">
+             <div className="bg-muted/30 border-border flex flex-col items-end rounded-2xl border p-6 backdrop-blur">
+                <span className="text-muted-foreground text-xs uppercase font-extrabold tracking-widest">Valeur Marchande</span>
+                <span className="text-foreground text-4xl font-black tabular-nums">{fcfa(pack.prix)}</span>
+                <div className="mt-3 flex items-center gap-2">
+                   <Button variant="outline" size="sm" onClick={() => toast.info("Exportation rapport PDF")}>
+                      <Download className="mr-1 h-3.5 w-3.5" />
+                      Rapport
+                   </Button>
+                   <Button size="sm" className="bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20" onClick={() => setEditPackOpen(true)}>
+                      <Settings2 className="mr-1 h-3.5 w-3.5" />
+                      Paramètres
+                   </Button>
+                </div>
+             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Main Tabs UI */}
       <Tabs defaultValue="cours" className="w-full">
-        <TabsList className="bg-card border-border h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border p-1">
-          {(
-            [
-              { v: "cours", count: totals.cours },
-              { v: "resumes", count: totals.resumes },
-              { v: "audio", count: totals.audio },
-              { v: "video", count: totals.video },
-              { v: "qcm", count: totals.qcm },
-              { v: "flash", count: totals.flash },
-              { v: "chatbot", count: null },
-            ] as const
-          ).map((t) => {
-            const meta =
-              t.v === "chatbot"
-                ? { label: "Chatbot", I: MessageSquare }
-                : typeMeta[t.v as ContentType]
-            const I = meta.I
-            return (
-              <TabsTrigger
-                key={t.v}
-                value={t.v}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"
-              >
-                <I className="h-3.5 w-3.5" />
-                <span>{meta.label}</span>
-                {t.count !== null && (
-                  <span className="bg-muted-foreground/20 rounded px-1.5 text-[10px] font-medium tabular-nums">
-                    {t.count}
-                  </span>
-                )}
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
+        <div className="bg-card border-border sticky top-20 z-20 flex items-center justify-between border-b pb-1 pt-4 backdrop-blur-xl">
+           <TabsList className="bg-transparent h-auto gap-6 p-0">
+            {(
+              [
+                { v: "cours", count: totals.cours },
+                { v: "resumes", count: totals.resumes },
+                { v: "audio", count: totals.audio },
+                { v: "video", count: totals.video },
+                { v: "qcm", count: totals.qcm },
+                { v: "flash", count: totals.flash },
+                { v: "chatbot", count: null },
+              ] as const
+            ).map((t) => {
+              const meta = t.v === "chatbot" ? { label: "Chatbot IA", I: MessageSquare } : typeMeta[t.v as ContentType]
+              return (
+                <TabsTrigger
+                  key={t.v}
+                  value={t.v}
+                  className="data-[state=active]:text-primary border-b-2 border-transparent px-0 pb-3 text-sm font-bold transition-all data-[state=active]:border-primary rounded-none shadow-none"
+                >
+                  <meta.I className="mr-2 h-4 w-4" />
+                  {meta.label}
+                  {t.count !== null && (
+                    <span className="ml-2 bg-muted-foreground/10 text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-bold">
+                      {t.count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        </div>
 
         {(["cours", "resumes", "audio", "video", "qcm", "flash"] as ContentType[]).map(
           (tab) => (
-            <TabsContent key={tab} value={tab} className="mt-5">
+            <TabsContent key={tab} value={tab} className="mt-8">
               <ContentList
                 type={tab}
                 items={content[tab]}
@@ -372,189 +361,161 @@ export default function PackDetailPage({
           ),
         )}
 
-        {/* CHATBOT */}
-        <TabsContent value="chatbot" className="mt-5">
-          <div className="bg-card border-border rounded-xl border p-6">
-            <div className="flex items-start gap-4">
-              <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
-                <MessageSquare className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-foreground text-lg font-semibold">
-                  Chatbot contextuel — {pack.titre}
-                </h3>
-                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                  Limité à 3 interactions avant l&apos;achat, puis accès illimité après
-                  acquisition du pack. Le contexte est strictement limité au contenu
-                  pédagogique de ce pack.
-                </p>
+        {/* CHATBOT SPECIALIZED CONFIG */}
+        <TabsContent value="chatbot" className="mt-8 space-y-6">
+           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="bg-card border-border lg:col-span-2 rounded-2xl border p-8 shadow-sm">
+                 <div className="flex items-start gap-5">
+                    <div className="bg-primary/10 text-primary flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-inner">
+                       <Zap className="h-8 w-8" />
+                    </div>
+                    <div>
+                       <h3 className="text-foreground text-xl font-bold">Base de connaissances IA</h3>
+                       <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                          Le chatbot est automatiquement entraîné sur les {Object.values(totals).reduce((a, b) => a + (b || 0), 0)} fichiers indexés dans ce pack. 
+                          Il répond de manière contextuelle uniquement pour aider l&apos;apprenant dans sa préparation au concours.
+                       </p>
+                    </div>
+                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <div className="bg-muted/30 border-border rounded-lg border p-3">
-                    <div className="text-muted-foreground text-xs">Interactions / mois</div>
-                    <div className="text-foreground mt-1 text-xl font-semibold tabular-nums">
-                      18 420
+                 <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-4">
+                       <div className="bg-muted/30 border-border rounded-xl border p-5">
+                          <Label className="text-xs font-bold uppercase tracking-widest">Tonalité de réponse</Label>
+                          <Select value={chatbotSettings.tone} onValueChange={(v) => setChatbotSettings({...chatbotSettings, tone: v})}>
+                             <SelectTrigger className="mt-3 bg-background font-medium">
+                                <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                                <SelectItem value="Académique">Professeur Académique</SelectItem>
+                                <SelectItem value="Coaching">Coach Motivationnel</SelectItem>
+                                <SelectItem value="Direct">Direct & Synthétique</SelectItem>
+                             </SelectContent>
+                          </Select>
+                       </div>
+                       <div className="bg-muted/30 border-border rounded-xl border p-5">
+                          <Label className="text-xs font-bold uppercase tracking-widest">Niveau de Contexte</Label>
+                          <Select value={chatbotSettings.contextDepth} onValueChange={(v) => setChatbotSettings({...chatbotSettings, contextDepth: v})}>
+                             <SelectTrigger className="mt-3 bg-background font-medium">
+                                <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                                <SelectItem value="Maximum">Contenu du pack uniquement</SelectItem>
+                                <SelectItem value="Hybrid">Pack + Culture Générale</SelectItem>
+                             </SelectContent>
+                          </Select>
+                       </div>
                     </div>
-                  </div>
-                  <div className="bg-muted/30 border-border rounded-lg border p-3">
-                    <div className="text-muted-foreground text-xs">Note moyenne</div>
-                    <div className="text-foreground mt-1 text-xl font-semibold tabular-nums">
-                      4,7 / 5
+                    <div className="bg-primary/5 border-primary/20 rounded-xl border p-6 flex flex-col justify-between">
+                       <div>
+                          <Label className="text-primary text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                             <ShieldCheck className="h-3 w-3" />
+                             Sécurité IA
+                          </Label>
+                          <p className="text-foreground mt-3 text-sm font-medium">
+                             L&apos;IA est configurée pour refuser d&apos;extraire le texte intégral des cours (protection contre le dump de contenu).
+                          </p>
+                       </div>
+                       <Button size="sm" className="bg-primary mt-4 w-full font-bold">Tester le chatbot</Button>
                     </div>
-                  </div>
-                  <div className="bg-muted/30 border-border rounded-lg border p-3">
-                    <div className="text-muted-foreground text-xs">
-                      Conversion essai → achat
-                    </div>
-                    <div className="text-success mt-1 text-xl font-semibold tabular-nums">
-                      38%
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toast.info("Historique des conversations")}
-                  >
-                    Voir les conversations
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => toast.info("Ouverture du panneau de configuration")}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    Configurer le contexte
-                  </Button>
-                </div>
+                 </div>
               </div>
-            </div>
-          </div>
+
+              <div className="space-y-6">
+                 <div className="bg-card border-border rounded-2xl border p-6 shadow-sm">
+                    <h4 className="text-foreground font-bold">Performances IA</h4>
+                    <div className="mt-5 space-y-4">
+                       <div>
+                          <div className="flex items-center justify-between text-xs font-bold text-muted-foreground uppercase">
+                             <span>Qualité des réponses</span>
+                             <span className="text-foreground">4.8/5</span>
+                          </div>
+                          <Progress value={96} className="mt-2 h-1.5" />
+                       </div>
+                       <div>
+                          <div className="flex items-center justify-between text-xs font-bold text-muted-foreground uppercase">
+                             <span>Temps de réponse</span>
+                             <span className="text-foreground">1.2s</span>
+                          </div>
+                          <Progress value={85} className="mt-2 h-1.5" />
+                       </div>
+                    </div>
+                 </div>
+                 <div className="bg-warning/5 border-warning/20 rounded-2xl border p-6">
+                    <div className="flex items-center gap-3">
+                       <Switch checked={chatbotSettings.allowFreeSample} onCheckedChange={(v) => setChatbotSettings({...chatbotSettings, allowFreeSample: v})} />
+                       <span className="text-sm font-bold">Essai Gratuit Actif</span>
+                    </div>
+                    <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+                       Autorise 3 messages gratuits aux non-acheteurs pour tester le pack. Forte conversion constatée.
+                    </p>
+                 </div>
+              </div>
+           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Add content dialog */}
+      {/* MODALS */}
       <Dialog open={!!addType} onOpenChange={(o) => !o && setAddType(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {addType && `Ajouter : ${typeMeta[addType].label}`}
+            <DialogTitle className="text-xl font-bold">
+              {addType && `Contribution : ${typeMeta[addType].label}`}
             </DialogTitle>
             <DialogDescription>
-              Le contenu sera ajouté au pack « {pack.titre} » et disponible après
-              publication.
+              Ajout de nouveau matériel pédagogique à l&apos;unité {pack.titre}.
             </DialogDescription>
           </DialogHeader>
 
           {addType && (
-            <div className="flex flex-col gap-4">
-              <div>
-                <Label htmlFor="c-titre">Titre</Label>
+            <div className="flex flex-col gap-5 py-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Titre de la ressource</Label>
                 <Input
-                  id="c-titre"
                   value={addForm.titre}
                   onChange={(e) => setAddForm({ ...addForm, titre: e.target.value })}
-                  placeholder={`Titre du ${typeMeta[addType].singular}`}
-                  className="mt-1.5"
+                  placeholder={`Nom du/de la ${typeMeta[addType].singular}`}
                 />
               </div>
 
               {(addType === "cours" || addType === "audio" || addType === "video") && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="c-duree">Durée</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground">Volume / Durée</Label>
                     <Input
-                      id="c-duree"
                       value={addForm.duree}
                       onChange={(e) => setAddForm({ ...addForm, duree: e.target.value })}
-                      placeholder="45 min"
-                      className="mt-1.5"
+                      placeholder="Ex: 45 min"
                     />
                   </div>
                   {addType === "cours" && (
-                    <div>
-                      <Label htmlFor="c-chap">Chapitres</Label>
+                    <div className="space-y-2">
+                       <Label className="text-xs font-bold uppercase text-muted-foreground">Chapitres</Label>
                       <Input
-                        id="c-chap"
                         type="number"
-                        min={1}
                         value={addForm.chapitres}
-                        onChange={(e) =>
-                          setAddForm({ ...addForm, chapitres: Number(e.target.value) })
-                        }
-                        className="mt-1.5"
+                        onChange={(e) => setAddForm({ ...addForm, chapitres: Number(e.target.value) })}
                       />
                     </div>
                   )}
                 </div>
               )}
 
-              {addType === "resumes" && (
-                <div>
-                  <Label htmlFor="c-taille">Taille</Label>
-                  <Input
-                    id="c-taille"
-                    value={addForm.taille}
-                    onChange={(e) => setAddForm({ ...addForm, taille: e.target.value })}
-                    placeholder="8 pages"
-                    className="mt-1.5"
-                  />
-                </div>
-              )}
-
               {addType === "qcm" && (
-                <div>
-                  <Label htmlFor="c-qst">Nombre de questions</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Questions (Auto-correction)</Label>
                   <Input
-                    id="c-qst"
                     type="number"
-                    min={1}
                     value={addForm.questions}
-                    onChange={(e) =>
-                      setAddForm({ ...addForm, questions: Number(e.target.value) })
-                    }
-                    className="mt-1.5"
+                    onChange={(e) => setAddForm({ ...addForm, questions: Number(e.target.value) })}
                   />
                 </div>
               )}
 
-              {addType === "flash" && (
+              <div className="bg-muted/30 border-border flex items-center justify-between rounded-xl border p-4">
                 <div>
-                  <Label htmlFor="c-cards">Nombre de cartes</Label>
-                  <Input
-                    id="c-cards"
-                    type="number"
-                    min={1}
-                    value={addForm.cartes}
-                    onChange={(e) =>
-                      setAddForm({ ...addForm, cartes: Number(e.target.value) })
-                    }
-                    className="mt-1.5"
-                  />
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="c-desc">Description (optionnelle)</Label>
-                <Textarea
-                  id="c-desc"
-                  rows={3}
-                  value={addForm.description}
-                  onChange={(e) =>
-                    setAddForm({ ...addForm, description: e.target.value })
-                  }
-                  placeholder="Objectifs pédagogiques, prérequis..."
-                  className="mt-1.5 resize-none"
-                />
-              </div>
-
-              <div className="bg-muted/30 border-border flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <Label className="text-sm font-normal">Accessible en aperçu gratuit</Label>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    L&apos;apprenant peut consulter sans acheter le pack.
-                  </p>
+                  <Label className="text-sm font-bold">Inclure dans la version démo</Label>
+                  <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">Gratuit pour tous</p>
                 </div>
                 <Switch
                   checked={addForm.gratuit}
@@ -565,94 +526,55 @@ export default function PackDetailPage({
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddType(null)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={submitAdd}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              Ajouter
+            <Button variant="outline" onClick={() => setAddType(null)} className="font-bold">Annuler</Button>
+            <Button onClick={submitAdd} className="bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20">
+               Valider l&apos;ajout
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit pack (quick) */}
       <Dialog open={editPackOpen} onOpenChange={setEditPackOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Modifier « {pack.titre} »</DialogTitle>
-            <DialogDescription>
-              Ajustez rapidement les infos générales. Pour une édition complète, utilisez la
-              page Packs.
-            </DialogDescription>
+            <DialogTitle className="text-xl font-bold">Réglages du Pack</DialogTitle>
+            <DialogDescription>Structure tarifaire et visibilité globale.</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div>
-              <Label>Statut</Label>
-              <Select
-                defaultValue={pack.statut}
-                onValueChange={(v) =>
-                  toast.success(`Statut mis à jour : ${v}`)
-                }
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Disponibilité Marché</Label>
+              <Select defaultValue={pack.statut}>
+                <SelectTrigger className="h-11 font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Publié">Publié</SelectItem>
-                  <SelectItem value="Brouillon">Brouillon</SelectItem>
-                  <SelectItem value="Archivé">Archivé</SelectItem>
+                  <SelectItem value="Publié">✅ Actif (Vente en cours)</SelectItem>
+                  <SelectItem value="Brouillon">📝 Préparation (Masqué)</SelectItem>
+                  <SelectItem value="Archivé">📦 Archivé (Fin d&apos;accès)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="p-prix">Prix (FCFA)</Label>
-              <Input
-                id="p-prix"
-                type="number"
-                defaultValue={pack.prix}
-                className="mt-1.5"
-              />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Ajustement du Prix (FCFA)</Label>
+              <Input type="number" defaultValue={pack.prix} className="h-11 text-lg font-bold" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditPackOpen(false)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={() => {
-                toast.success("Pack mis à jour")
-                setEditPackOpen(false)
-              }}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Enregistrer
-            </Button>
+            <Button variant="outline" onClick={() => setEditPackOpen(false)} className="font-bold">Fermer</Button>
+            <Button onClick={() => { toast.success("Paramètres sauvegardés"); setEditPackOpen(false); }} className="bg-primary text-primary-foreground font-bold">Appliquer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete content */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer ce contenu ?</AlertDialogTitle>
+            <AlertDialogTitle className="text-destructive font-bold text-xl">Retrait de Contenu</AlertDialogTitle>
             <AlertDialogDescription>
-              « {toDelete?.item.titre} » sera retiré du pack. Les apprenants qui l&apos;ont
-              déjà consulté conservent leur progression.
+              Voulez-vous vraiment supprimer **{toDelete?.item.titre}** ? Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={removeItem}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Supprimer
-            </AlertDialogAction>
+            <AlertDialogCancel className="font-bold">Conserver</AlertDialogCancel>
+            <AlertDialogAction onClick={removeItem} className="bg-destructive text-destructive-foreground font-bold">Supprimer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -677,45 +599,29 @@ function ContentList({
   const I = meta.I
 
   return (
-    <div className="bg-card border-border overflow-hidden rounded-xl border">
-      <div className="border-border flex items-center justify-between border-b px-5 py-4">
+    <div className="bg-card border-border overflow-hidden rounded-2xl border shadow-sm">
+      <div className="border-border flex items-center justify-between border-b bg-muted/10 px-6 py-5">
         <div>
-          <h3 className="text-foreground text-base font-semibold">{meta.label}</h3>
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            {items.length} élément{items.length > 1 ? "s" : ""} — les éléments marqués
-            « aperçu » sont accessibles gratuitement.
-          </p>
+          <h3 className="text-foreground flex items-center gap-2 text-lg font-bold">
+             {meta.label}
+             <Badge variant="outline" className="bg-background ml-1 font-bold tabular-nums">{items.length}</Badge>
+          </h3>
+          <p className="text-muted-foreground mt-1 text-xs font-medium">Gestion du matériel de type {meta.singular}.</p>
         </div>
-        <Button
-          size="sm"
-          onClick={onAdd}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="mr-1.5 h-4 w-4" />
+        <Button size="sm" onClick={onAdd} className="bg-primary text-primary-foreground font-bold">
+          <Plus className="mr-1 h-3.5 w-3.5" />
           Ajouter
         </Button>
       </div>
 
       {items.length === 0 ? (
-        <div className="p-10 text-center">
-          <div className="bg-primary/10 text-primary mx-auto flex h-14 w-14 items-center justify-center rounded-2xl">
-            <I className="h-7 w-7" />
+        <div className="p-16 text-center">
+          <div className="bg-primary/10 text-primary mx-auto flex h-20 w-20 items-center justify-center rounded-3xl shadow-inner mb-6">
+            <I className="h-10 w-10" />
           </div>
-          <h3 className="text-foreground mt-4 text-base font-semibold">
-            Aucun {meta.singular} pour l&apos;instant
-          </h3>
-          <p className="text-muted-foreground mx-auto mt-1 max-w-md text-sm">
-            Ajoutez votre premier contenu pour enrichir l&apos;expérience
-            d&apos;apprentissage.
-          </p>
-          <Button
-            size="sm"
-            onClick={onAdd}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-5"
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Ajouter du contenu
-          </Button>
+          <h3 className="text-foreground text-xl font-bold">Aucune ressource indexée</h3>
+          <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm">Préparez vos fichiers pour enrichir l&apos;apprentissage.</p>
+          <Button size="sm" onClick={onAdd} className="bg-primary text-primary-foreground mt-8 font-bold px-8">Charger du contenu</Button>
         </div>
       ) : (
         <div className="divide-border divide-y">
@@ -724,64 +630,49 @@ function ContentList({
               <motion.div
                 key={c.id}
                 layout
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.22 }}
-                className="hover:bg-accent/30 flex items-center gap-4 px-5 py-3.5 transition-colors"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="hover:bg-accent/30 flex items-center gap-4 px-6 py-4 transition-colors"
               >
-                <div className="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums">
+                <div className="bg-muted text-muted-foreground flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-black tabular-nums border border-border/50">
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-foreground flex items-center gap-2 text-sm font-medium">
-                    {c.titre}
-                    {c.gratuit ? (
-                      <Badge
-                        variant="outline"
-                        className="border-success/30 text-success bg-success/5 h-5 text-[10px]"
-                      >
-                        Aperçu
-                      </Badge>
-                    ) : (
-                      <Lock className="text-muted-foreground h-3 w-3" />
-                    )}
+                  <div className="flex items-center gap-3">
+                    <span className="text-foreground text-base font-bold truncate tracking-tight">{c.titre}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                       {c.gratuit ? (
+                        <Badge variant="secondary" className="bg-success/10 text-success border-0 font-bold text-[9px] uppercase tracking-widest px-2">DÉMO</Badge>
+                       ) : (
+                        <Badge variant="outline" className="border-border text-muted-foreground font-bold text-[9px] uppercase tracking-widest px-2"><Lock className="mr-1 h-2 w-2" />PAYANT</Badge>
+                       )}
+                    </div>
                   </div>
-                  <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2 text-xs">
-                    {c.chapitres && <span>{c.chapitres} chapitres</span>}
-                    {c.duree && <span>{c.duree}</span>}
-                    {c.taille && <span>{c.taille}</span>}
-                    {c.questions && <span>{c.questions} questions</span>}
-                    {c.cartes && <span>{c.cartes} cartes</span>}
-                    {typeof c.taux === "number" && (
-                      <span>· {c.taux}% de réussite</span>
-                    )}
-                    <span>·</span>
-                    <span>{c.vues.toLocaleString("fr-FR")} vues</span>
+                  <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-y-1 gap-x-4 text-[11px] font-bold uppercase tracking-tight">
+                    {c.chapitres && <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" />{c.chapitres} Chap.</span>}
+                    {c.duree && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{c.duree}</span>}
+                    {c.taille && <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{c.taille}</span>}
+                    {c.questions && <span className="flex items-center gap-1"><ListChecks className="h-3 w-3" />{c.questions} Qust.</span>}
+                    {c.cartes && <span className="flex items-center gap-1"><Layers className="h-3 w-3" />{c.cartes} Cartes</span>}
+                    <span className="text-primary flex items-center gap-1"><Eye className="h-3 w-3" />{c.vues.toLocaleString()} Vues</span>
                   </div>
-                  {type === "qcm" && typeof c.taux === "number" && (
-                    <Progress value={c.taux} className="mt-2 h-1" />
-                  )}
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-8 w-8 items-center justify-center rounded-md transition-colors">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
+                    <button className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-9 w-9 items-center justify-center rounded-xl transition-all border border-transparent hover:border-border">
+                      <MoreHorizontal className="h-5 w-5" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => onToggleFree(c)}>
-                      <Eye className="mr-2 h-3.5 w-3.5" />
-                      {c.gratuit ? "Retirer de l'aperçu" : "Marquer en aperçu"}
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => onToggleFree(c)} className="font-semibold">
+                      <Zap className="mr-2 h-4 w-4 text-warning" />
+                      {c.gratuit ? "Masquer la démo" : "Activer l'aperçu gratuit"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onDelete(c)}
-                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                    >
-                      <Trash2 className="mr-2 h-3.5 w-3.5" />
-                      Supprimer
+                    <DropdownMenuItem onClick={() => onDelete(c)} className="text-destructive font-semibold focus:bg-destructive/10 focus:text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer du pack
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
