@@ -64,6 +64,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { packs, fcfa } from "@/lib/mock-data"
+import { ApercuPackDialog } from "@/components/admin/apercu-pack-dialog"
 
 type ContentType = "cours" | "resumes" | "audio" | "video" | "qcm" | "flash"
 
@@ -152,6 +153,9 @@ export default function PackDetailPage({
 
   const [toDelete, setToDelete] = useState<{ type: ContentType; item: ContentItem } | null>(null)
   const [editPackOpen, setEditPackOpen] = useState(false)
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(false)
+  const [chatConfigOpen, setChatConfigOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   function openAdd(type: ContentType) {
     setAddType(type)
@@ -240,7 +244,7 @@ export default function PackDetailPage({
 
       {/* Hero */}
       <div className="bg-card border-border relative overflow-hidden rounded-xl border p-6 md:p-8">
-        <div className="bg-primary/8 absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl" />
+        <div className="bg-primary/8 pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl" />
         <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -303,7 +307,7 @@ export default function PackDetailPage({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => toast.info("Aperçu apprenant ouvert dans un nouvel onglet")}
+                onClick={() => setPreviewOpen(true)}
               >
                 <Eye className="mr-1.5 h-4 w-4" />
                 Aperçu
@@ -416,13 +420,13 @@ export default function PackDetailPage({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => toast.info("Historique des conversations")}
+                    onClick={() => setChatHistoryOpen(true)}
                   >
                     Voir les conversations
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => toast.info("Ouverture du panneau de configuration")}
+                    onClick={() => setChatConfigOpen(true)}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     Configurer le contexte
@@ -534,6 +538,17 @@ export default function PackDetailPage({
                   />
                 </div>
               )}
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="c-file">Fichier joint</Label>
+                  <Input id="c-file" type="file" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label htmlFor="c-link">Lien externe</Label>
+                  <Input id="c-link" type="url" placeholder="https://..." className="mt-1.5" />
+                </div>
+              </div>
 
               <div>
                 <Label htmlFor="c-desc">Description (optionnelle)</Label>
@@ -656,6 +671,62 @@ export default function PackDetailPage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Chat History Dialog */}
+      <Dialog open={chatHistoryOpen} onOpenChange={setChatHistoryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Historique des conversations</DialogTitle>
+            <DialogDescription>
+              Conversations récentes des apprenants avec le chatbot sur ce pack.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted/30 border-border rounded-lg border p-12 text-center">
+            <MessageSquare className="text-muted-foreground mx-auto h-12 w-12 opacity-50" />
+            <h4 className="mt-4 font-medium">Historique bientôt disponible</h4>
+            <p className="text-muted-foreground mt-1 text-sm">Les logs des conversations seront affichés ici pour améliorer la pertinence du bot.</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setChatHistoryOpen(false)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chat Config Dialog */}
+      <Dialog open={chatConfigOpen} onOpenChange={setChatConfigOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurer le chatbot</DialogTitle>
+            <DialogDescription>
+              Ajustez le comportement et le contexte du chatbot pour ce pack.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="bot-prompt">Prompt système (instructions spécifiques)</Label>
+              <Textarea id="bot-prompt" rows={4} placeholder="Ex: Tu es un expert en Droit Administratif..." className="mt-1.5 resize-none" defaultValue={"Tu es un tuteur spécialisé dans le contenu de ce pack. Réponds uniquement aux questions liées à cette matière. Si l'apprenant dévie, redirige-le vers le cours."} />
+            </div>
+            <div className="bg-muted/30 border-border flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label className="text-sm font-normal">Mode strict (Contexte uniquement)</Label>
+                <p className="text-muted-foreground mt-0.5 text-xs">Le bot refusera de répondre hors de la matière fournie.</p>
+              </div>
+              <Switch defaultChecked />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChatConfigOpen(false)}>Annuler</Button>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => { toast.success("Configuration sauvegardée"); setChatConfigOpen(false); }}>Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pack preview dialog */}
+      <ApercuPackDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        pack={pack}
+      />
     </div>
   )
 }

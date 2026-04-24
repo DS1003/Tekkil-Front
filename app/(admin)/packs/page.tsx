@@ -47,6 +47,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -60,6 +61,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { packs as seedPacks, concours, fcfa, type Pack } from "@/lib/mock-data"
+import { ApercuPackDialog } from "@/components/admin/apercu-pack-dialog"
 
 const statutColors: Record<string, string> = {
   Publié: "border-success/30 text-success bg-success/5",
@@ -100,22 +102,28 @@ const emptyForm: FormState = {
 export default function PacksPage() {
   const [items, setItems] = useState<Pack[]>(seedPacks)
   const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("Tous")
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Pack | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [toDelete, setToDelete] = useState<Pack | null>(null)
+  const [previewPack, setPreviewPack] = useState<Pack | null>(null)
 
   const filtered = useMemo(() => {
+    let result = items
+    if (statusFilter !== "Tous") {
+      result = result.filter((p) => p.statut === statusFilter)
+    }
     const q = search.trim().toLowerCase()
-    if (!q) return items
-    return items.filter(
+    if (!q) return result
+    return result.filter(
       (p) =>
         p.titre.toLowerCase().includes(q) ||
         p.matiere.toLowerCase().includes(q) ||
         p.concours.toLowerCase().includes(q),
     )
-  }, [items, search])
+  }, [items, search, statusFilter])
 
   const stats = useMemo(() => {
     const total = items.length
@@ -251,10 +259,31 @@ export default function PacksPage() {
             className="h-10 pl-9"
           />
         </div>
-        <Button variant="outline" size="default" onClick={() => toast.info("Panneau de filtres à venir")}>
-          <Filter className="mr-1.5 h-4 w-4" />
-          Filtres
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="default">
+              <Filter className="mr-1.5 h-4 w-4" />
+              {statusFilter === "Tous" ? "Filtres" : statusFilter}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Statut</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setStatusFilter("Publié")}>
+              Publiés
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("Brouillon")}>
+              Brouillons
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("Archivé")}>
+              Archivés
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setStatusFilter("Tous")}>
+              Tous les statuts
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Stats strip */}
@@ -336,7 +365,7 @@ export default function PacksPage() {
                 </DropdownMenu>
               </div>
 
-              <Link href={`/packs/${p.id}`} className="block">
+              <div className="block">
                 {/* Header strip */}
                 <div className="border-border relative flex items-center justify-between border-b px-5 py-3 pr-12">
                   <div className="flex items-center gap-2 text-xs">
@@ -351,9 +380,11 @@ export default function PacksPage() {
                 {/* Body */}
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-foreground group-hover:text-primary text-lg font-semibold leading-tight transition-colors">
-                      {p.titre}
-                    </h3>
+                    <Link href={`/packs/${p.id}`} className="hover:underline">
+                      <h3 className="text-foreground group-hover:text-primary text-lg font-semibold leading-tight transition-colors">
+                        {p.titre}
+                      </h3>
+                    </Link>
                     <Badge variant="outline" className={statutColors[p.statut]}>
                       {p.statut}
                     </Badge>
@@ -407,15 +438,28 @@ export default function PacksPage() {
                     </div>
                   )}
 
-                  <div className="border-border mt-5 flex items-center justify-between border-t pt-3">
-                    <span className="text-muted-foreground text-xs">MAJ : {p.miseAJour}</span>
-                    <span className="text-primary inline-flex items-center text-xs font-medium">
-                      Gérer
-                      <ChevronRight className="ml-0.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                    </span>
+                  <div className="border-border mt-5 flex items-center gap-2 border-t pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setPreviewPack(p)}
+                    >
+                      <Eye className="mr-1.5 h-4 w-4" />
+                      Aperçu
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
+                      asChild
+                    >
+                      <Link href={`/packs/${p.id}`}>
+                        Gérer
+                      </Link>
+                    </Button>
                   </div>
                 </div>
-              </Link>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -597,6 +641,13 @@ export default function PacksPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Pack preview dialog */}
+      <ApercuPackDialog
+        open={!!previewPack}
+        onOpenChange={(o) => !o && setPreviewPack(null)}
+        pack={previewPack}
+      />
     </div>
   )
 }

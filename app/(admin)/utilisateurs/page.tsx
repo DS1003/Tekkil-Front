@@ -47,6 +47,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -99,6 +100,9 @@ type InviteForm = {
 export default function UtilisateursPage() {
   const [users, setUsers] = useState<Utilisateur[]>(seedUsers)
   const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("Tous")
+  const [page, setPage] = useState(1)
+  const perPage = 10
 
   const [editTarget, setEditTarget] = useState<Utilisateur | null>(null)
   const [editForm, setEditForm] = useState<EditForm | null>(null)
@@ -115,16 +119,27 @@ export default function UtilisateursPage() {
   const [toBlock, setToBlock] = useState<Utilisateur | null>(null)
 
   const filtered = useMemo(() => {
+    let result = users
+    if (statusFilter !== "Tous") {
+      result = result.filter((u) => u.statut === statusFilter)
+    }
     const q = search.trim().toLowerCase()
-    if (!q) return users
-    return users.filter(
+    if (!q) return result
+    return result.filter(
       (u) =>
         u.nom.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         u.telephone.toLowerCase().includes(q) ||
         u.ville.toLowerCase().includes(q),
     )
-  }, [users, search])
+  }, [users, search, statusFilter])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * perPage
+    return filtered.slice(start, start + perPage)
+  }, [filtered, page])
+
+  const totalPages = Math.ceil(filtered.length / perPage) || 1
 
   const stats = useMemo(() => {
     const actifs = users.filter((u) => u.statut === "Actif").length
@@ -203,7 +218,7 @@ export default function UtilisateursPage() {
     setToBlock(null)
   }
 
-  function exportCsv() {
+  function exportExcel() {
     const header = "Nom;Email;Téléphone;Ville;Packs;Total;Statut\n"
     const rows = users
       .map(
@@ -211,14 +226,15 @@ export default function UtilisateursPage() {
           `"${u.nom}";"${u.email}";"${u.telephone}";"${u.ville}";${u.packsAchetes};${u.totalDepense};"${u.statut}"`,
       )
       .join("\n")
-    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8" })
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF])
+    const blob = new Blob([bom, header + rows], { type: "text/csv;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
     a.download = `tekkil-utilisateurs-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success("Export CSV téléchargé")
+    toast.success("Liste exportée pour Excel")
   }
 
   return (
@@ -229,9 +245,9 @@ export default function UtilisateursPage() {
         description={`Gérez vos ${users.length.toLocaleString("fr-FR")} utilisateurs : profils, abonnements, sessions actives et conformité (connexion unique par appareil).`}
         actions={
           <>
-            <Button variant="outline" size="sm" onClick={exportCsv}>
+            <Button variant="outline" size="sm" onClick={exportExcel}>
               <Download className="mr-1.5 h-4 w-4" />
-              Exporter CSV
+              Exporter Excel
             </Button>
             <Button
               size="sm"
@@ -278,10 +294,31 @@ export default function UtilisateursPage() {
             className="h-10 pl-9"
           />
         </div>
-        <Button variant="outline" onClick={() => toast.info("Filtres avancés à venir")}>
-          <Filter className="mr-1.5 h-4 w-4" />
-          Filtres
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Filter className="mr-1.5 h-4 w-4" />
+              {statusFilter === "Tous" ? "Filtres" : statusFilter}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Statut</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setStatusFilter("Actif")}>
+              Actifs
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("Suspendu")}>
+              Suspendus
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("Bloqué")}>
+              Bloqués
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setStatusFilter("Tous")}>
+              Tous les statuts
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Table */}
@@ -302,7 +339,7 @@ export default function UtilisateursPage() {
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
-              {filtered.map((u) => {
+              {paginated.map((u) => {
                 const D = deviceIcons[u.appareil]
                 return (
                   <tr key={u.id} className="hover:bg-accent/30 transition-colors">
@@ -433,16 +470,36 @@ export default function UtilisateursPage() {
         </div>
         <div className="border-border text-muted-foreground flex items-center justify-between border-t px-5 py-3 text-xs">
           <span>
-            Affichage de 1 à {filtered.length} sur {users.length.toLocaleString("fr-FR")} utilisateurs
+            Affichage de {(page - 1) * perPage + 1} à {Math.min(page * perPage, filtered.length)} sur {filtered.length.toLocaleString("fr-FR")} utilisateurs
           </span>
           <div className="flex gap-1">
-            <button className="bg-muted/40 hover:bg-muted rounded px-2.5 py-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="bg-muted/40 hover:bg-muted disabled:opacity-50 rounded px-2.5 py-1"
+            >
               Précédent
             </button>
-            <button className="bg-primary text-primary-foreground rounded px-2.5 py-1">1</button>
-            <button className="bg-muted/40 hover:bg-muted rounded px-2.5 py-1">2</button>
-            <button className="bg-muted/40 hover:bg-muted rounded px-2.5 py-1">3</button>
-            <button className="bg-muted/40 hover:bg-muted rounded px-2.5 py-1">Suivant</button>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={
+                  page === i + 1
+                    ? "bg-primary text-primary-foreground rounded px-2.5 py-1"
+                    : "bg-muted/40 hover:bg-muted rounded px-2.5 py-1"
+                }
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="bg-muted/40 hover:bg-muted disabled:opacity-50 rounded px-2.5 py-1"
+            >
+              Suivant
+            </button>
           </div>
         </div>
       </div>

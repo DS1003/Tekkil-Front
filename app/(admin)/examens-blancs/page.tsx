@@ -83,6 +83,7 @@ export default function ExamensBlancsPage() {
   const [editing, setEditing] = useState<ExamenBlanc | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [toDelete, setToDelete] = useState<ExamenBlanc | null>(null)
+  const [viewingResults, setViewingResults] = useState<ExamenBlanc | null>(null)
 
   const stats = useMemo(() => {
     const actifs = items.filter((e) => e.statut === "Actif").length
@@ -107,7 +108,7 @@ export default function ExamensBlancsPage() {
     setForm({
       titre: e.titre,
       concours: e.concours,
-      cycle: e.cycle,
+      cycle: e.cycle as "A" | "B",
       duree: e.duree,
       questions: e.questions,
       statut: e.statut,
@@ -339,7 +340,7 @@ export default function ExamensBlancsPage() {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => toast.info(`Ouverture des résultats : ${e.titre}`)}
+                      onClick={() => setViewingResults(e)}
                       className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       <Play className="mr-1 h-3.5 w-3.5" />
@@ -486,6 +487,46 @@ export default function ExamensBlancsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Results View */}
+      <Dialog open={!!viewingResults} onOpenChange={(o) => !o && setViewingResults(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Résultats : {viewingResults?.titre}</DialogTitle>
+            <DialogDescription>
+              Aperçu détaillé des performances des participants à cet examen blanc.
+            </DialogDescription>
+          </DialogHeader>
+          {viewingResults && (
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="bg-muted/30 border-border rounded-lg border p-4">
+                  <div className="text-muted-foreground text-xs uppercase tracking-wider">Participants</div>
+                  <div className="mt-1 text-2xl font-bold">{viewingResults.participants.toLocaleString("fr-FR")}</div>
+                </div>
+                <div className="bg-muted/30 border-border rounded-lg border p-4">
+                  <div className="text-muted-foreground text-xs uppercase tracking-wider">Score moyen</div>
+                  <div className="text-primary mt-1 text-2xl font-bold">{viewingResults.moyenneScore}%</div>
+                </div>
+                <div className="bg-muted/30 border-border rounded-lg border p-4">
+                  <div className="text-muted-foreground text-xs uppercase tracking-wider">Taux de réussite</div>
+                  <div className="text-success mt-1 text-2xl font-bold">
+                    {Math.round(viewingResults.moyenneScore * 0.85)}%
+                  </div>
+                </div>
+              </div>
+              <div className="bg-muted/30 border-border rounded-lg border p-8 text-center">
+                <Trophy className="text-muted-foreground mx-auto h-12 w-12 opacity-50" />
+                <h4 className="mt-4 font-medium">Tableau de bord complet en développement</h4>
+                <p className="text-muted-foreground mt-1 text-sm">L&apos;exportation et les graphiques de progression individuelle seront bientôt disponibles.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setViewingResults(null)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

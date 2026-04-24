@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "motion/react"
 import {
   Plus,
@@ -297,11 +298,11 @@ export default function ConcoursPage() {
                         <Pencil className="mr-2 h-3.5 w-3.5" />
                         Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => toast.info(`Aperçu : ${c.abbr}`)}
-                      >
-                        <Eye className="mr-2 h-3.5 w-3.5" />
-                        Voir les packs
+                      <DropdownMenuItem asChild>
+                        <Link href="/packs">
+                          <Eye className="mr-2 h-3.5 w-3.5" />
+                          Voir les packs
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -371,9 +372,11 @@ export default function ConcoursPage() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => toast.info(`Ouverture des packs de ${c.abbr}`)}
+                    asChild
                   >
-                    Voir packs
+                    <Link href="/packs">
+                      Voir packs
+                    </Link>
                   </Button>
                   <Button
                     size="sm"
